@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Icon } from '@iconify/react';
+import React from "react";
+import { Icon } from "@iconify/react";
 
 interface ActivityCardProps {
   text: string;
@@ -10,7 +10,7 @@ interface ActivityCardProps {
 
 export default function ActivityCard({ text, time }: ActivityCardProps) {
   return (
-    <div className="flex items-start gap-3 p-3 border rounded-md shadow-sm w-full md:w-64 transition-all duration-200 ease-in-out bg-white hover:shadow-md hover:scale-[1.01] ">
+    <div className="flex items-start gap-3 p-3 border border-gray-200 rounded-md shadow-sm w-full md:w-64 transition-all duration-200 ease-in-out bg-white hover:shadow-md hover:scale-[1.01]">
       <Icon
         icon="mdi:clock-outline"
         width={24}

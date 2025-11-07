@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Icon } from '@iconify/react';
+import React from "react";
+import { Icon } from "@iconify/react";
 
 interface BarData {
   label: string;
@@ -12,7 +12,8 @@ interface DashboardCardProps {
   icon: string;
   title: string;
   value?: number;
-  barData?: BarData[]; 
+  valueClassName?: string; // ✅ tambahan props untuk styling value
+  barData?: BarData[];
   onClick?: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function DashboardCard({
   icon,
   title,
   value,
+  valueClassName,
   barData,
   onClick,
 }: DashboardCardProps) {
@@ -30,7 +32,7 @@ export default function DashboardCard({
     <div
       onClick={onClick}
       className={`p-4 bg-white rounded-xl shadow hover:shadow-md transition w-full cursor-pointer ${
-        onClick ? 'hover:bg-gray-50' : ''
+        onClick ? "hover:bg-gray-50" : ""
       }`}
     >
       <div className="flex items-center gap-4 mb-4">
@@ -40,7 +42,9 @@ export default function DashboardCard({
         <div>
           <p className="text-gray-500 text-sm">{title}</p>
           {value !== undefined && (
-            <h3 className="text-xl font-semibold">{value}</h3>
+            <h3 className={`text-xl font-semibold ${valueClassName || ""}`}>
+              {value}
+            </h3>
           )}
         </div>
       </div>
@@ -49,10 +53,10 @@ export default function DashboardCard({
         <div className="space-y-3">
           {barData.map((item, idx) => {
             const percent = (item.value / maxValue) * 100;
-            let color = 'bg-blue-500';
-            if (percent > 75) color = 'bg-green-500';
-            else if (percent > 40) color = 'bg-yellow-500';
-            else if (percent > 0) color = 'bg-red-500';
+            let color = "bg-blue-500";
+            if (percent > 75) color = "bg-green-500";
+            else if (percent > 40) color = "bg-yellow-500";
+            else if (percent > 0) color = "bg-red-500";
 
             return (
               <div key={idx}>

@@ -1,44 +1,52 @@
-// lib/api/petugas/get-count/router.ts
 import { apiUrl } from '@/lib/utils/apiUrl';
 
 export async function getTotalPegawai(): Promise<number> {
-  const url = apiUrl('petugas/count');        
+  const url = apiUrl('pegawai/count'); 
 
   try {
-    const res = await fetch(url, {
+    const response = await fetch(url, {
       method: 'GET',
-      headers: { Accept: 'application/json' }, 
+      headers: { Accept: 'application/json' },
     });
 
-    const contentType = res.headers.get('content-type')?.toLowerCase() ?? '';
-    const isJson = contentType.includes('application/json');
+    if (!response.ok) {
+      let errorMessage = `Gagal mengambil total pegawai (HTTP ${response.status})`;
 
-    // jika bukan JSON, lempar error bawaan
-    if (!isJson) {
-      const text = await res.text();
-      throw new Error(`Server mengirim non‑JSON: ${text.slice(0, 120)}…`);
+      const contentType = response.headers.get('Content-Type') || '';
+      if (contentType.includes('application/json')) {
+        const errorBody = await response.json();
+        if (errorBody?.message) {
+          errorMessage = errorBody.message;
+        }
+      } else {
+        const text = await response.text();
+        if (text) errorMessage = text;
+      }
+
+      throw new Error(errorMessage);
     }
 
-    const body = await res.json(); // aman karena sudah dicek JSON
-
-    // tangani error dari server
-    if (!res.ok) {
-      throw new Error(body?.message || `HTTP ${res.status}`);
+    const contentType = response.headers.get('Content-Type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`Respons server bukan JSON: ${text.slice(0, 120)}…`);
     }
 
-    // beberapa backend memakai data.count — beberapa data.data.count
+    const body = await response.json();
+
+    // Ambil count dari berbagai kemungkinan format response
     const count =
       body?.count ??
       body?.data?.count ??
       (Array.isArray(body) ? body.length : undefined);
 
-    if (typeof count !== 'number')
-      throw new Error('Format response tidak berisi properti count');
+    if (typeof count !== 'number') {
+      throw new Error('Response tidak berisi properti count yang valid');
+    }
 
     return count;
-  } catch (err) {
-    // log detail ke console, lempar pesan umum ke pemanggil
-    console.error('[getTotalPegawai] error:', err);
-    throw new Error('Gagal mengambil total petugas');
+  } catch (error) {
+    console.error('[getTotalPegawai] error:', error);
+    throw new Error('Gagal mengambil total pegawai');
   }
 }

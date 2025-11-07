@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+body {
+  background-color: #f3f4f6; /* sama seperti bg-gray-100 */
+  min-height: 100%;
+}
+

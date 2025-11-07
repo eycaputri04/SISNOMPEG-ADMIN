@@ -1,6 +1,9 @@
+import { ReactNode } from "react";
+
 export interface ButtonProps {
-  label: string;
-  styleButton?: String;
+  label: string | ReactNode;
+  onClick?: () => void;
   disabled?: boolean;
-  onClick?:() => void;
+  type?: "button" | "submit" | "reset";
+  styleButton?: string;
 }

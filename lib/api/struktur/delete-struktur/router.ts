@@ -1,22 +1,34 @@
 // lib/api/struktur/delete-struktur/router.ts
 import { apiUrl } from '@/lib/utils/apiUrl';
 
-export async function deleteStrukturOrganisasi(id: string) {
+export async function deleteStrukturOrganisasi(id: string): Promise<{ message: string }> {
+  const url = apiUrl(`struktur/${id}`); // endpoint sesuai backend kamu
+
   try {
-    const response = await fetch(apiUrl(`struktur-organisasi/${id}`), {
+    const response = await fetch(url, {
       method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+      },
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data?.message || `Gagal menghapus struktur (${response.status})`);
+      throw new Error(data?.message || `Gagal menghapus struktur (Status ${response.status})`);
     }
 
-    return data;
+    // Response sesuai backend kamu
+    return {
+      message: data?.message || 'Struktur berhasil dihapus',
+    };
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Detail error:', error.message);
-    }
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Terjadi kesalahan saat menghapus struktur organisasi';
+
+    console.error('[deleteStrukturOrganisasi] error:', message);
+    throw new Error(message);
   }
 }

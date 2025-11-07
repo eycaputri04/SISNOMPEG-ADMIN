@@ -1,11 +1,11 @@
+// lib/api/struktur/edit-struktur/router.ts
 import { apiUrl } from '@/lib/utils/apiUrl';
 
 interface EditStrukturPayload {
   id: string;
   petugas: string;
   jabatan: string;
-  tmt: string;           // ← Wajib ada
-  userId: string;
+  tmt: string;
 }
 
 export async function editStrukturOrganisasi({
@@ -13,9 +13,8 @@ export async function editStrukturOrganisasi({
   petugas,
   jabatan,
   tmt,
-  userId,
 }: EditStrukturPayload) {
-  const url = apiUrl(`struktur-organisasi/${id}`);
+  const url = apiUrl(`struktur/${id}`);
   if (!url) throw new Error('API URL tidak tersedia');
 
   try {
@@ -24,12 +23,11 @@ export async function editStrukturOrganisasi({
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        user_id: userId,
       },
       body: JSON.stringify({
-        Petugas: petugas,
-        jabatan,
-        tmt, // ← penting!
+        Pegawai: petugas, 
+        Jabatan: jabatan,
+        TMT: tmt,
       }),
     });
 
@@ -43,13 +41,21 @@ export async function editStrukturOrganisasi({
       throw new Error(msg);
     }
 
-    return data;
+    return {
+      message: data.message || 'Struktur berhasil diperbarui',
+      data: {
+        id_struktur: data.data?.ID_Struktur,
+        pegawai: data.data?.Pegawai,
+        jabatan: data.data?.Jabatan,
+        tmt: data.data?.TMT,
+      },
+    };
   } catch (error) {
     const message =
       error instanceof Error
         ? error.message
         : 'Terjadi kesalahan saat memperbarui struktur organisasi';
-    console.error('Edit struktur gagal:', message);
+    console.error('[editStrukturOrganisasi] Error:', message);
     throw new Error(message);
   }
 }

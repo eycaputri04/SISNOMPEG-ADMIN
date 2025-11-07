@@ -2,70 +2,95 @@ import { apiUrl } from '@/lib/utils/apiUrl';
 
 export interface Struktur {
   id_struktur: string;
-  nip: string;
-  nama_petugas: string;
-  foto_pegawai: string;
-  no_telepon: string;
+  pegawai: string;
   jabatan: string;
   tmt: string;
-}
-
-interface RawPetugas {
-  nip: string;
-  nama_lengkap: string;
-  foto_pegawai: string;
-  no_telepon: string;
+  parent_id: string | null;
 }
 
 interface RawStruktur {
   ID_Struktur: string;
-  petugas: RawPetugas | null;
-  jabatan: string;
-  tmt: string;
+  Pegawai: string;
+  Jabatan: string;
+  TMT: string;
+  parent_id: string | null;
 }
 
-interface ErrorResponse {
-  message?: string;
-}
-
-export async function getAllStruktur(): Promise<Struktur[]> {
-  const url = apiUrl('struktur-organisasi');
+export async function getAllStruktur(retry = 0): Promise<Struktur[]> {
+  const url = apiUrl('struktur');
 
   try {
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-      },
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
     });
 
-    const rawData = await response.json();
+    if (!response.ok) throw new Error(`Gagal fetch struktur: ${response.status}`);
 
-    if (!response.ok) {
-      const errorData: ErrorResponse = rawData;
-      const errorMessage = errorData.message || 'Gagal mengambil data struktur organisasi';
-      throw new Error(errorMessage);
+    const rawData: RawStruktur[] = await response.json();
+    console.log('[getAllStruktur] Data mentah:', rawData);
+
+    if ((!rawData || rawData.length === 0) && retry < 2) {
+      console.warn('Data struktur kosong, coba ulang...');
+      await new Promise((r) => setTimeout(r, 1500));
+      return getAllStruktur(retry + 1);
     }
 
-    const strukturData: RawStruktur[] = rawData;
+    // Buat lookup untuk mempercepat pencarian parent
+    const byJabatan = (jabatan: string) =>
+      rawData.find((p) => p.Jabatan.toLowerCase().includes(jabatan.toLowerCase()));
 
-    const data: Struktur[] = strukturData.map((item) => ({
+    const withHierarchy = rawData.map((item) => {
+      if (item.parent_id) return item;
+
+      const jabatan = item.Jabatan.toLowerCase();
+      let parent: RawStruktur | undefined;
+
+      if (jabatan.includes('kepala stasiun')) {
+        parent = undefined;
+      } 
+      else if (jabatan.includes('koordinator data')) {
+        parent = byJabatan('kepala stasiun');
+      } 
+      else if (jabatan.includes('koordinator observasi')) {
+        parent = byJabatan('kepala stasiun');
+      } 
+      else if (jabatan.includes('tata usaha') && !jabatan.includes('staf')) {
+        parent = byJabatan('kepala stasiun');
+      } 
+      else if (jabatan.includes('staf')) {
+        if (jabatan.includes('data') || jabatan.includes('informasi')) {
+          parent = byJabatan('koordinator data');
+        } else if (jabatan.includes('observasi') || jabatan.includes('teknisi')) {
+          parent = byJabatan('koordinator observasi');
+        } else if (jabatan.includes('tata usaha')) {
+          parent = byJabatan('tata usaha');
+        }
+      }
+
+      return {
+        ...item,
+        parent_id: parent ? parent.ID_Struktur : null,
+      };
+    });
+
+    return withHierarchy.map((item) => ({
       id_struktur: item.ID_Struktur,
-      nip: item.petugas?.nip ?? '-',
-      nama_petugas: item.petugas?.nama_lengkap ?? '-',
-      foto_pegawai: item.petugas?.foto_pegawai ?? '',
-      no_telepon: item.petugas?.no_telepon ?? '-',
-      jabatan: item.jabatan ?? '-',
-      tmt: item.tmt ?? '-',
+      pegawai: item.Pegawai,
+      jabatan: item.Jabatan,
+      tmt: item.TMT,
+      parent_id: item.parent_id,
     }));
-
-    return data;
   } catch (error) {
-    console.error('Gagal mengambil data struktur organisasi:', error);
-    throw new Error(
-      error instanceof Error
-        ? error.message
-        : 'Terjadi kesalahan saat mengambil data struktur organisasi'
-    );
+    console.error('[getAllStruktur] Error:', error);
+
+    if (retry < 2) {
+      console.warn(`Percobaan ulang ke-${retry + 1}...`);
+      await new Promise((r) => setTimeout(r, 1500));
+      return getAllStruktur(retry + 1);
+    }
+
+    throw new Error('Gagal mengambil data struktur organisasi.');
   }
 }

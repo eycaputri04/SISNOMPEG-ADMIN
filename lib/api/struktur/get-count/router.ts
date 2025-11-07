@@ -1,43 +1,32 @@
-// lib/api/struktur/get-count/router.ts
 import { apiUrl } from '@/lib/utils/apiUrl';
 
-export async function getTotalStruktur(): Promise<number> {
-  const url = apiUrl('struktur-organisasi/count'); // hilangkan slash awal
+export async function getTotalStruktur(retry = 0): Promise<number> {
+  const url = apiUrl('struktur/count');
 
   try {
-    const res = await fetch(url, {
+    const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        Accept: 'application/json', // lebih tepat daripada Content-Type
-      },
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
     });
 
-    const contentType = res.headers.get('content-type')?.toLowerCase() ?? '';
-    const isJson = contentType.includes('application/json');
+    if (!response.ok) throw new Error(`Gagal ambil count: ${response.status}`);
 
-    if (!isJson) {
-      const text = await res.text();
-      throw new Error(`Response bukan JSON: ${text.slice(0, 120)}…`);
-    }
-
-    const body = await res.json();
-
-    if (!res.ok) {
-      throw new Error(body?.message || `HTTP ${res.status}`);
-    }
-
+    const data = await response.json();
     const count =
-      body?.count ??
-      body?.data?.count ??
-      (Array.isArray(body) ? body.length : undefined);
+      data?.count ?? data?.data?.count ?? (Array.isArray(data) ? data.length : 0);
 
-    if (typeof count !== 'number') {
-      throw new Error('Properti "count" tidak ditemukan atau bukan angka');
+    if (typeof count !== 'number') throw new Error('Count tidak valid');
+    return count;
+  } catch (error) {
+    console.error('[getTotalStruktur] Error:', error);
+
+    if (retry < 2) {
+      console.warn(`Percobaan ulang total struktur ke-${retry + 1}...`);
+      await new Promise((r) => setTimeout(r, 1500));
+      return getTotalStruktur(retry + 1);
     }
 
-    return count;
-  } catch (err) {
-    console.error('[getTotalStruktur] error:', err);
-    throw new Error('Gagal mengambil total struktur organisasi');
+    return 0;
   }
 }

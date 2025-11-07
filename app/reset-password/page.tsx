@@ -1,80 +1,109 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { motion } from "framer-motion";
+import { Poppins } from "next/font/google";
 import InputField from "@/components/Input";
 import Button from "@/components/Button";
-import AuthLeftPanel from "@/components/AuthLeftPanel";
-import Image from "next/image";
-import PasswordIcon from "@/public/password-success.png";
+import { LockClosedIcon } from "@heroicons/react/20/solid";
+import type { AuthError } from "@supabase/supabase-js";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+});
 
 export default function ResetPasswordPage() {
-    const [password, setPassword] = useState("");
-    const [confirm, setConfirm] = useState("");
-    const router = useRouter();
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
-    const handleReset = async () => {};
+  const handleResetPassword = async (): Promise<void> => {
+    if (!newPassword || !confirmPassword) {
+      toast.error("Semua field wajib diisi.");
+      return;
+    }
 
-    return (
-        <div className="flex min-h-screen">
-            <AuthLeftPanel />
-            <div className="flex flex-col justify-center items-center w-full md:w-1/2 p-8">
-                <div className="w-full max-w-sm flex flex-col gap-4 text-center">
-                    <h1 className="text-2xl font-bold mb-4 text-gray-800">
-                        Atur Ulang Kata Sandi
-                    </h1>
+    if (newPassword !== confirmPassword) {
+      toast.error("Konfirmasi kata sandi tidak cocok.");
+      return;
+    }
 
-                    {/* <div className="flex justify-center">
-                        <Image
-                            src={PasswordIcon}
-                            alt="Success"
-                            width={150}
-                            height={150}
-                        />
-                    </div> */}
-                    <p className="text-gray-700">Kata sandi berhasil diubah.</p>
-                    <Button
-                        label="Login sekarang"
-                        onClick={() => router.push("/")}
-                    />
-                    <div className="flex justify-center">
-                        <Image
-                            src={PasswordIcon}
-                            alt="Input password"
-                            width={150}
-                            height={150}
-                        />
-                    </div>
-                    <InputField
-                        name="new-password"
-                        type="password"
-                        placeholder="Password baru"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <InputField
-                        name="confirm-password"
-                        type="password"
-                        placeholder="Konfirmasi password"
-                        value={confirm}
-                        onChange={(e) => setConfirm(e.target.value)}
-                    />
+    setLoading(true);
+    try {
+      const { error }: { error: AuthError | null } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
 
-                    <Button
-                        label="Simpan Password Baru"
-                        onClick={handleReset}
-                    />
-                    <p className="text-xs text-gray-400 mt-2">
-                        Kembali ke{" "}
-                        <span
-                            className="text-blue-700 underline cursor-pointer hover:text-blue-900"
-                            onClick={() => router.push("/")}
-                        >
-                            halaman login
-                        </span>
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
+      if (error) throw error;
+
+      // Logout paksa supaya user diarahkan ke login
+      await supabase.auth.signOut();
+
+      toast.success("Kata sandi berhasil diperbarui! Silakan login kembali.");
+      setTimeout(() => router.push("/"), 2000);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Gagal memperbarui kata sandi.";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <ToastContainer />
+      <div
+        className={`min-h-screen bg-white flex items-center justify-center px-6 py-24 ${poppins.className}`}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-md w-full bg-gray-50 shadow-xl rounded-2xl p-8"
+        >
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <LockClosedIcon className="h-6 w-6 text-blue-800" />
+            <h2 className="text-2xl font-semibold text-blue-800">
+              Reset Kata Sandi
+            </h2>
+          </div>
+
+          <InputField
+            name="newPassword"
+            type="password"
+            placeholder="Kata sandi baru"
+            value={newPassword}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setNewPassword(e.target.value)
+            }
+          />
+          <br />
+          <InputField
+            name="confirmPassword"
+            type="password"
+            placeholder="Konfirmasi kata sandi baru"
+            value={confirmPassword}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setConfirmPassword(e.target.value)
+            }
+          />
+
+          <Button
+            styleButton="bg-blue-800 hover:bg-blue-900 text-white mt-4"
+            label={loading ? "Menyimpan..." : "Simpan Kata Sandi Baru"}
+            onClick={handleResetPassword}
+            disabled={loading}
+          />
+        </motion.div>
+      </div>
+    </>
+  );
 }

@@ -6,9 +6,8 @@ import { toast } from 'react-toastify';
 import Button from './Button';
 import InputField from './Input';
 import ModalWrapper from './ModalWrapper';
-import { getAllPetugas } from '@/lib/api/petugas/get-petugas/router';
-import { editStrukturOrganisasi } from '@/lib/api/struktur/put-struktur/router';
-
+import { getAllPegawai } from '@/lib/api/petugas/get-petugas/router'; 
+import { editStrukturOrganisasi } from '@/lib/api/struktur/put-struktur/router'; 
 interface StrukturForm {
   id: string;
   petugas: string;
@@ -16,9 +15,9 @@ interface StrukturForm {
   tmt: string;
 }
 
-interface Petugas {
+interface Pegawai {
   nip: string;
-  nama_lengkap: string;
+  nama: string;
 }
 
 interface EditStrukturProps {
@@ -26,7 +25,6 @@ interface EditStrukturProps {
   onClose: () => void;
   struktur: StrukturForm | null;
   onSuccess: () => Promise<void>;
-  userId: string;
 }
 
 export const EditStruktur: React.FC<EditStrukturProps> = ({
@@ -34,7 +32,6 @@ export const EditStruktur: React.FC<EditStrukturProps> = ({
   onClose,
   struktur,
   onSuccess,
-  userId,
 }) => {
   const [formData, setFormData] = useState<StrukturForm>({
     id: '',
@@ -43,18 +40,17 @@ export const EditStruktur: React.FC<EditStrukturProps> = ({
     tmt: '',
   });
 
-  const [listPetugas, setListPetugas] = useState<Petugas[]>([]);
+  const [listPegawai, setListPegawai] = useState<Pegawai[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Memuat data awal saat modal dibuka
   useEffect(() => {
-    if (struktur) {
-      setFormData(struktur);
-    }
+    if (struktur) setFormData(struktur);
 
     if (isOpen) {
-      getAllPetugas()
-        .then(setListPetugas)
-        .catch(() => toast.error('Gagal memuat daftar petugas'));
+      getAllPegawai()
+        .then(setListPegawai)
+        .catch(() => toast.error('Gagal memuat daftar pegawai'));
     }
   }, [isOpen, struktur]);
 
@@ -74,15 +70,17 @@ export const EditStruktur: React.FC<EditStrukturProps> = ({
 
     setLoading(true);
     try {
-      await editStrukturOrganisasi({ id, petugas, jabatan, tmt, userId });
+      await editStrukturOrganisasi({ id, petugas, jabatan, tmt});
       toast.success('Struktur berhasil diperbarui');
       await onSuccess();
       handleClose();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Terjadi kesalahan saat mengedit struktur';
+        error instanceof Error
+          ? error.message
+          : 'Terjadi kesalahan saat mengedit struktur';
       toast.error(message);
-      console.error('Edit struktur error:', message);
+      console.error('[EditStruktur] Error:', message);
     } finally {
       setLoading(false);
     }
@@ -96,11 +94,18 @@ export const EditStruktur: React.FC<EditStrukturProps> = ({
   if (!struktur) return null;
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={handleClose} title="Edit Struktur Organisasi">
+    <ModalWrapper
+      isOpen={isOpen}
+      onClose={onClose}
+      widthClass="max-w-4xl"
+      title="Edit Data Struktur"
+    >
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4" autoComplete="off">
-        {/* Pilih Petugas */}
+        {/* Pilih Pegawai */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="petugas" className="text-sm font-medium text-gray-700">Petugas</label>
+          <label htmlFor="petugas" className="text-sm font-medium text-gray-700">
+            Pegawai
+          </label>
           <select
             name="petugas"
             value={formData.petugas}
@@ -108,10 +113,10 @@ export const EditStruktur: React.FC<EditStrukturProps> = ({
             className="border rounded-md px-3 py-2 text-sm w-full"
             required
           >
-            <option value="">Pilih Petugas</option>
-            {listPetugas.map((p) => (
+            <option value="">Pilih Pegawai</option>
+            {listPegawai.map((p) => (
               <option key={p.nip} value={p.nip}>
-                {p.nama_lengkap}
+                {p.nama}
               </option>
             ))}
           </select>
@@ -123,7 +128,7 @@ export const EditStruktur: React.FC<EditStrukturProps> = ({
           name="jabatan"
           value={formData.jabatan}
           onChange={handleChange}
-          placeholder="Contoh: Kepala Seksi Data dan Informasi"
+          placeholder="Contoh: Kepala Seksi Observasi"
         />
 
         {/* TMT */}
@@ -145,7 +150,7 @@ export const EditStruktur: React.FC<EditStrukturProps> = ({
             styleButton="bg-gray-600 text-white w-full sm:w-auto"
           />
           <Button
-            label={loading ? 'Menyimpan...' : 'SIMPAN'}
+            label={loading ? 'Menyimpan...' : 'SIMPAN PERUBAHAN'}
             type="submit"
             disabled={loading}
             styleButton="bg-blue-800 text-white w-full sm:w-auto"

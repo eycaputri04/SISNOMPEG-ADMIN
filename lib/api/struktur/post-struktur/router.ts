@@ -3,19 +3,19 @@ import { apiUrl } from '@/lib/utils/apiUrl';
 interface StrukturPayload {
   petugas: string;
   jabatan: string;
-  tmt: string;      // ← tambah field ini
-  userId: string;
+  tmt: string;
 }
 
 export async function tambahStrukturOrganisasi({
   petugas,
   jabatan,
   tmt,
-  userId,
 }: StrukturPayload) {
-  const url = apiUrl('struktur-organisasi');
+  // endpoint sesuai server
+  const url = apiUrl('struktur');
   if (!url) throw new Error('API URL tidak tersedia');
 
+  // validasi input
   if (!petugas || !jabatan || !tmt) {
     throw new Error('Field petugas, jabatan, dan tmt harus diisi');
   }
@@ -26,12 +26,11 @@ export async function tambahStrukturOrganisasi({
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        user_id: userId,
       },
       body: JSON.stringify({
-        Petugas: petugas,
-        jabatan,
-        tmt,
+        Pegawai: petugas,
+        Jabatan: jabatan,
+        TMT: tmt,
       }),
     });
 
@@ -45,7 +44,10 @@ export async function tambahStrukturOrganisasi({
       throw new Error(msg);
     }
 
-    return data;
+    return {
+      message: data.message,
+      struktur: data.data,
+    };
   } catch (err) {
     const message =
       err instanceof Error

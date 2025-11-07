@@ -1,10 +1,13 @@
-export interface inputProps {
-  label?: string; // ✅ Tambahkan baris ini
+export interface InputProps {
+  label?: string;
   name: string;
   type?: string;
   placeholder?: string;
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => string | void;
+
   disabled?: boolean;
-  readOnly?: boolean; 
+  readOnly?: boolean;
+  className?: string; 
+
 }

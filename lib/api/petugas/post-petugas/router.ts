@@ -1,28 +1,30 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
 
-export interface PetugasPayload {
-  nip: string;
-  nama_lengkap: string;
-  tempat_tanggal_lahir?: string;
-  pendidikan_terakhir?: string;
-  pangkat_golongan?: string;
-  kgb_terakhir?: string;
-  kgb_berikutnya?: string;
-  no_telepon?: string;
-  foto_pegawai?: string;
-  tmt?: string; 
+export interface tambahPegawai {
+  NIP: string;
+  Nama: string;
+  Tempat_Tanggal_Lahir?: string;
+  Pendidikan_Terakhir?: string;
+  Pangkat_Golongan?: string;
+  KGB_Berikutnya?: string;
+  TMT?: string;
+  Jenis_Kelamin?: string;
+  Agama?: string;
+  Status_Kepegawaian?: string;
+  Gaji_Pokok?: number;
+  Jumlah_Anak?: number;
 }
 
-export interface PetugasResponse {
+export interface PegawaiResponse {
   message: string;
-  data: PetugasPayload;
+  data: tambahPegawai;
 }
 
-export async function tambahPetugas(
-  payload: PetugasPayload
-): Promise<PetugasResponse> {
+export async function tambahPegawai(
+  payload: tambahPegawai
+): Promise<PegawaiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/petugas`, {
+    const response = await fetch(`${API_BASE_URL}/pegawai`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -31,7 +33,7 @@ export async function tambahPetugas(
     });
 
     if (!response.ok) {
-      let errorMessage = 'Terjadi kesalahan saat menambahkan petugas';
+      let errorMessage = 'Terjadi kesalahan saat menambahkan pegawai';
 
       const contentType = response.headers.get('Content-Type') || '';
       if (contentType.includes('application/json')) {
@@ -56,14 +58,14 @@ export async function tambahPetugas(
       throw new Error(errorMessage);
     }
 
-    const data: PetugasResponse = await response.json();
+    const data: PegawaiResponse = await response.json();
     return data;
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.error('Detail error:', err.message);
       throw err;
     } else {
-      throw new Error('Kesalahan tak terduga saat menambahkan petugas.');
+      throw new Error('Kesalahan tak terduga saat menambahkan pegawai.');
     }
   }
 }
