@@ -34,7 +34,7 @@ export default function LupaPasswordPage() {
     setLoading(true);
     try {
       const { error }: { error: AuthError | null } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;
