@@ -116,8 +116,6 @@ export default function PendidikanPage() {
 
   return (
     <>
-      <ToastContainer />
-
       {/* Modal Tambah */}
       <TambahPendidikan
         isOpen={isTambahOpen}
@@ -125,7 +123,6 @@ export default function PendidikanPage() {
         onSuccess={async () => {
           setIsTambahOpen(false);
           await fetchPendidikan();
-          toast.success("Data pendidikan berhasil ditambahkan");
         }}
       />
 
@@ -138,7 +135,6 @@ export default function PendidikanPage() {
           onSuccess={async () => {
             setIsEditOpen(false);
             await fetchPendidikan();
-            toast.success("Data pendidikan berhasil diperbarui");
           }}
         />
       )}
