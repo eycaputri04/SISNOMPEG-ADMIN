@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ToastContainer, toast } from "react-toastify";
@@ -24,6 +24,25 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Tambahan penting agar token Supabase dari URL bisa dibaca
+  useEffect(() => {
+    const handleRecovery = async () => {
+      const hashParams = window.location.hash.substring(1);
+      const params = new URLSearchParams(hashParams);
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+
+      if (access_token && refresh_token) {
+        await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+      }
+    };
+
+    handleRecovery();
+  }, []);
+
   const handleResetPassword = async (): Promise<void> => {
     if (!newPassword || !confirmPassword) {
       toast.error("Semua field wajib diisi.");
@@ -43,7 +62,7 @@ export default function ResetPasswordPage() {
 
       if (error) throw error;
 
-      // Logout paksa supaya user diarahkan ke login
+      // Logout supaya user diarahkan ke login lagi
       await supabase.auth.signOut();
 
       toast.success("Kata sandi berhasil diperbarui! Silakan login kembali.");
