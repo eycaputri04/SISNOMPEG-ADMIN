@@ -24,24 +24,25 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Tambahan penting agar token Supabase dari URL bisa dibaca
+  // agar token Supabase dari URL bisa dibaca
   useEffect(() => {
-    const handleRecovery = async () => {
-      const hashParams = window.location.hash.substring(1);
-      const params = new URLSearchParams(hashParams);
-      const access_token = params.get("access_token");
-      const refresh_token = params.get("refresh_token");
+  const handleRecovery = async () => {
+    const hashParams = window.location.hash.substring(1);
+    const params = new URLSearchParams(hashParams);
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
 
-      if (access_token && refresh_token) {
-        await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        });
-      }
-    };
+    if (access_token && refresh_token) {
+      await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+    }
+  };
 
-    handleRecovery();
-  }, []);
+  handleRecovery();
+}, [supabase]);
+
 
   const handleResetPassword = async (): Promise<void> => {
     if (!newPassword || !confirmPassword) {

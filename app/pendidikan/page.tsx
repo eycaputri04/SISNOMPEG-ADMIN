@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Poppins } from "next/font/google";
 import TambahPendidikan from "@/components/TambahPendidikan";
