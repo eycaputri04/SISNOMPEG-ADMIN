@@ -116,8 +116,6 @@ export default function CatatanKarirPage() {
 
   return (
     <>
-      <ToastContainer />
-
       <TambahCatatanKarir
         isOpen={isTambahOpen}
         onClose={() => setIsTambahOpen(false)}
