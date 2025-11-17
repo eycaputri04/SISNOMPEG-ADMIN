@@ -125,7 +125,7 @@ const Sidebar = ({ active }: SidebarProps) => {
           </button>
 
           <div className="text-center text-[11px] text-white mt-4 px-2 leading-tight">
-            © 2025 Stasiun Klimatologi BMKG Bengkulu. All rights reserved.
+            © 2025 Stasiun Klimatologi BMKG Bengkulu . All rights reserved.
           </div>
         </div>
       </div>

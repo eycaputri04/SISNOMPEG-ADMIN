@@ -190,7 +190,6 @@ export default function PegawaiPage() {
 
   return (
     <>
-      <ToastContainer />
       <TambahPegawai
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
