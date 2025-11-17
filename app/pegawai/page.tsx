@@ -8,7 +8,7 @@ import { TambahPegawai } from "@/components/TambahPegawai";
 import { EditPegawai } from "@/components/EditPegawai";
 import { getAllPegawai } from "@/lib/api/petugas/get-petugas/router";
 import { deletePetugas } from "@/lib/api/petugas/delete-petugas/router";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Poppins } from "next/font/google";
 
