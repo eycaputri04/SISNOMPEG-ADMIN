@@ -8,7 +8,7 @@ import TambahCatatanKarir from "@/components/TambahCatatanKarir";
 import EditCatatanKarir from "@/components/EditCatatanKarir";
 import { deleteCatatanKarir } from "@/lib/api/catatan-karir/delete-catatan-karir/router";
 import { getAllPegawai } from "@/lib/api/petugas/get-petugas/router";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Poppins } from "next/font/google";
 
