@@ -6,8 +6,10 @@ import { toast } from "react-toastify";
 import ModalWrapper from "./ModalWrapper";
 import InputField from "./Input";
 import Button from "./Button";
+
 import { tambahPendidikan } from "@/lib/api/pendidikan/post-pendidikan/router";
 import { getAllPegawai } from "@/lib/api/petugas/get-petugas/router";
+import { getAllPendidikan, Pendidikan as TPendidikan } from "@/lib/api/pendidikan/get-pendidikan/router";
 
 interface TambahPendidikanProps {
   isOpen: boolean;
@@ -32,9 +34,12 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
     institusi: "",
     tahun_lulus: "",
   });
+
   const [listPegawai, setListPegawai] = useState<Pegawai[]>([]);
+  const [listPendidikan, setListPendidikan] = useState<TPendidikan[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Saat modal dibuka, load data
   useEffect(() => {
     if (isOpen) {
       setFormData({
@@ -44,31 +49,66 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
         institusi: "",
         tahun_lulus: "",
       });
+
       getAllPegawai()
         .then(setListPegawai)
         .catch(() => toast.error("Gagal memuat daftar pegawai"));
+
+      getAllPendidikan()
+        .then(setListPendidikan)
+        .catch(() => toast.error("Gagal memuat data pendidikan"));
     }
   }, [isOpen]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // ================================
+  // VALIDASI DUPLIKAT
+  // ================================
+  useEffect(() => {
+    if (!formData.pegawai || !formData.jenjang) return;
+
+    const duplikat = listPendidikan.some((p) => {
+      return (
+        String(p.Pegawai).trim() === String(formData.pegawai).trim() &&
+        String(p.Jenjang).toUpperCase() === formData.jenjang.toUpperCase()
+      );
+    });
+
+    if (duplikat) {
+      toast.error(
+        `Pegawai ini sudah memiliki jenjang ${formData.jenjang.toUpperCase()}!`
+      );
+      setFormData((prev) => ({ ...prev, jenjang: "" }));
+    }
+  }, [formData.pegawai, formData.jenjang, listPendidikan]);
+
+  // Handle input
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
+
     if (name === "tahun_lulus") {
       const numeric = value.replace(/\D/g, "");
-      if (numeric.length <= 4) setFormData((prev) => ({ ...prev, [name]: numeric }));
+      if (numeric.length <= 4)
+        setFormData((prev) => ({ ...prev, [name]: numeric }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
+  // Validasi umum
   const validateForm = () => {
     const { pegawai, jenjang, jurusan, institusi, tahun_lulus } = formData;
-    if (!pegawai || !jenjang || !jurusan || !institusi || !tahun_lulus) return false;
+    if (!pegawai || !jenjang || !jurusan || !institusi || !tahun_lulus)
+      return false;
     if (!/^\d{4}$/.test(tahun_lulus)) return false;
     return true;
   };
 
+  // Submit
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     if (!validateForm()) {
       toast.error("Periksa kembali data yang belum lengkap atau salah!");
       return;
@@ -117,7 +157,6 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
       title="Tambah Data Pendidikan"
     >
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4" autoComplete="off">
-        {/* Dropdown Pegawai */}
         <SelectField
           name="pegawai"
           label="Pegawai"
@@ -129,7 +168,6 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
           }}
         />
 
-        {/* Field lainnya */}
         <InputField
           name="jenjang"
           label="Jenjang"
@@ -159,7 +197,6 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
           placeholder="Contoh: 2024"
         />
 
-        {/* Tombol aksi */}
         <div className="flex justify-end gap-2 mt-4">
           <Button
             label="BATAL"
@@ -179,9 +216,9 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
   );
 };
 
-/* ==============================
-   Komponen SelectField 
-============================== */
+/* ============================
+   SelectField Component
+============================ */
 interface SelectFieldProps {
   name: string;
   label: string;
@@ -226,7 +263,6 @@ const SelectField: React.FC<SelectFieldProps> = ({
           ))}
         </select>
 
-        {/* Icon Dropdown animasi */}
         <motion.svg
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
