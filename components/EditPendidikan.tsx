@@ -7,9 +7,14 @@ import "react-toastify/dist/ReactToastify.css";
 import ModalWrapper from "./ModalWrapper";
 import InputField from "./Input";
 import Button from "./Button";
+
 import { updatePendidikan } from "@/lib/api/pendidikan/put-pendidikan/router";
 import { getAllPegawai } from "@/lib/api/petugas/get-petugas/router";
-
+import {
+  getAllPendidikan,
+  Pendidikan as TPendidikan,
+} from "@/lib/api/pendidikan/get-pendidikan/router";
+ 
 export interface PendidikanFormData {
   id_pendidikan: string;
   pegawai: string; // NIP pegawai
@@ -17,7 +22,6 @@ export interface PendidikanFormData {
   jurusan: string;
   institusi: string;
   tahun_lulus: string;
-  nama_lengkap?: string;
 }
 
 interface EditPendidikanProps {
@@ -25,6 +29,11 @@ interface EditPendidikanProps {
   onClose: () => void;
   onSuccess: () => Promise<void> | void;
   initialData: PendidikanFormData | null;
+}
+
+interface Pegawai {
+  nip: string;
+  nama: string;
 }
 
 const initialForm: PendidikanFormData = {
@@ -43,64 +52,101 @@ const EditPendidikan: React.FC<EditPendidikanProps> = ({
   initialData,
 }) => {
   const [form, setForm] = useState<PendidikanFormData>(initialForm);
-  const [listPegawai, setListPegawai] = useState<{ nip: string; nama: string }[]>([]);
+  const [listPegawai, setListPegawai] = useState<Pegawai[]>([]);
+  const [listPendidikan, setListPendidikan] = useState<TPendidikan[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Saat modal dibuka: isi form & ambil daftar pegawai
+  /* ======================================================
+     LOAD DATA
+  ====================================================== */
   useEffect(() => {
-    if (isOpen) {
-      getAllPegawai()
-        .then((res) => setListPegawai(res || []))
-        .catch(() => toast.error("Gagal memuat daftar pegawai"));
-
-      if (initialData) {
-        setForm({
-          id_pendidikan: initialData.id_pendidikan || "",
-          pegawai: initialData.pegawai || initialData.id_pendidikan || "",
-          jenjang: initialData.jenjang || "",
-          jurusan: initialData.jurusan || "",
-          institusi: initialData.institusi || "",
-          tahun_lulus: initialData.tahun_lulus || "",
-        });
-      }
-    } else {
+    if (!isOpen) {
       setForm(initialForm);
+      return;
+    }
+
+    getAllPegawai()
+      .then((res) => setListPegawai(res))
+      .catch(() => toast.error("Gagal memuat daftar pegawai"));
+
+    getAllPendidikan()
+      .then((res) => setListPendidikan(res))
+      .catch(() => toast.error("Gagal memuat data pendidikan"));
+
+    if (initialData) {
+      setForm({ ...initialData });
     }
   }, [isOpen, initialData]);
 
-  // 🔹 Handle perubahan input
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  /* ======================================================
+     HANDLE INPUT
+  ====================================================== */
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
 
-    // Batasi tahun_lulus hanya angka 4 digit
     if (name === "tahun_lulus") {
-      const numeric = value.replace(/\D/g, "");
-      if (numeric.length <= 4) {
-        setForm((prev) => ({ ...prev, [name]: numeric }));
+      const onlyNum = value.replace(/\D/g, "");
+      if (onlyNum.length <= 4) {
+        setForm((prev) => ({ ...prev, tahun_lulus: onlyNum }));
       }
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      return;
     }
+
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Validasi form
+  /* ======================================================
+     CHECK DUPLIKAT — DIPINDAH KE DALAM SUBMIT !!
+  ====================================================== */
+  const checkDuplicate = (): boolean => {
+    return listPendidikan.some((p) => {
+      return (
+        String(p.Pegawai) === form.pegawai &&
+        String(p.Jenjang).toUpperCase() === form.jenjang.toUpperCase() &&
+        String(p.ID_Pendidikan) !== form.id_pendidikan
+      );
+    });
+  };
+
+  /* ======================================================
+     VALIDASI FORM
+  ====================================================== */
   const validateForm = () => {
-    const { pegawai, jenjang, jurusan, institusi, tahun_lulus } = form;
-    if (!pegawai || !jenjang || !jurusan || !institusi || !tahun_lulus) return false;
-    if (!/^\d{4}$/.test(tahun_lulus)) return false;
-    return true;
+    if (
+      !form.pegawai ||
+      !form.jenjang ||
+      !form.jurusan ||
+      !form.institusi ||
+      !form.tahun_lulus
+    ) {
+      return false;
+    }
+
+    return /^\d{4}$/.test(form.tahun_lulus);
   };
 
-  // Submit update ke API
+  /* ======================================================
+     SUBMIT UPDATE
+  ====================================================== */
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error("Periksa kembali data yang belum lengkap atau salah!");
+      toast.error("Periksa kembali data yang belum lengkap!");
+      return;
+    }
+
+    // === VALIDASI DUPLIKAT SAAT SUBMIT ===
+    const adaDuplikat = checkDuplicate();
+    if (adaDuplikat) {
+      toast.warning(`Pegawai ini sudah memiliki jenjang ${form.jenjang}!`);
       return;
     }
 
     setLoading(true);
+
     try {
       const result = await updatePendidikan({
         id_pendidikan: form.id_pendidikan,
@@ -111,15 +157,15 @@ const EditPendidikan: React.FC<EditPendidikanProps> = ({
         tahun_lulus: Number(form.tahun_lulus),
       });
 
-      toast.success(result.message || "Data pendidikan berhasil diperbarui");
+      toast.success(result.message || "Berhasil memperbarui pendidikan");
       await onSuccess();
       onClose();
     } catch (err) {
-      const message =
+      const msg =
         err instanceof Error
           ? err.message
-          : "Terjadi kesalahan saat memperbarui data pendidikan";
-      toast.error(message);
+          : "Terjadi kesalahan saat update pendidikan";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -127,15 +173,18 @@ const EditPendidikan: React.FC<EditPendidikanProps> = ({
 
   if (!isOpen) return null;
 
+  /* ======================================================
+     RENDER
+  ====================================================== */
   return (
     <>
       <ToastContainer />
       <ModalWrapper
-          isOpen={isOpen}
-          onClose={onClose}
-          widthClass="max-w-4xl"
-          title="Edit Data Pendidikan"
-        >
+        isOpen={isOpen}
+        onClose={onClose}
+        widthClass="max-w-4xl"
+        title="Edit Data Pendidikan"
+      >
         <form
           onSubmit={handleSubmit}
           className="grid grid-cols-1 gap-4"
@@ -148,11 +197,10 @@ const EditPendidikan: React.FC<EditPendidikanProps> = ({
             </label>
             <select
               name="pegawai"
-              value={form.pegawai || ""}
+              value={form.pegawai}
               onChange={handleChange}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm"
               disabled={loading}
-              required
             >
               <option value="">Pilih Pegawai</option>
               {listPegawai.map((p) => (
@@ -163,41 +211,38 @@ const EditPendidikan: React.FC<EditPendidikanProps> = ({
             </select>
           </div>
 
-          {/* Input Field Lainnya */}
           <InputField
             name="jenjang"
             label="Jenjang"
-            value={form.jenjang || ""}
+            value={form.jenjang}
             onChange={handleChange}
-            placeholder="Contoh: S2"
-            disabled={loading}
+            placeholder="Contoh: S1"
           />
+
           <InputField
             name="jurusan"
             label="Jurusan"
-            value={form.jurusan || ""}
+            value={form.jurusan}
             onChange={handleChange}
-            placeholder="Contoh: Geofisika"
-            disabled={loading}
+            placeholder="Contoh: Meteorologi"
           />
+
           <InputField
             name="institusi"
             label="Institusi"
-            value={form.institusi || ""}
+            value={form.institusi}
             onChange={handleChange}
-            placeholder="Contoh: Universitas Gadjah Mada"
-            disabled={loading}
+            placeholder="Contoh: Universitas Indonesia"
           />
+
           <InputField
             name="tahun_lulus"
             label="Tahun Lulus"
-            value={form.tahun_lulus || ""}
+            value={form.tahun_lulus}
             onChange={handleChange}
-            placeholder="Contoh: 2010"
-            disabled={loading}
+            placeholder="Contoh: 2018"
           />
 
-          {/* Tombol Aksi */}
           <div className="flex justify-end gap-2 mt-4">
             <Button
               label="BATAL"
@@ -206,11 +251,12 @@ const EditPendidikan: React.FC<EditPendidikanProps> = ({
               styleButton="bg-gray-600 text-white hover:bg-gray-700"
               disabled={loading}
             />
+
             <Button
               label={loading ? "Menyimpan..." : "SIMPAN PERUBAHAN"}
               type="submit"
-              disabled={loading}
               styleButton="bg-blue-800 text-white hover:bg-blue-700"
+              disabled={loading}
             />
           </div>
         </form>

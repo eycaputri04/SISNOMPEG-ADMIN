@@ -9,7 +9,14 @@ import Button from "./Button";
 
 import { tambahPendidikan } from "@/lib/api/pendidikan/post-pendidikan/router";
 import { getAllPegawai } from "@/lib/api/petugas/get-petugas/router";
-import { getAllPendidikan, Pendidikan as TPendidikan } from "@/lib/api/pendidikan/get-pendidikan/router";
+import {
+  getAllPendidikan,
+  Pendidikan as TPendidikan,
+} from "@/lib/api/pendidikan/get-pendidikan/router";
+
+/* ============================
+   INTERFACE
+============================ */
 
 interface TambahPendidikanProps {
   isOpen: boolean;
@@ -22,7 +29,16 @@ interface Pegawai {
   nama: string;
 }
 
-export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+/* ============================
+   MAIN COMPONENT
+============================ */
+
+const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
   isOpen,
   onClose,
   onSuccess,
@@ -39,7 +55,9 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
   const [listPendidikan, setListPendidikan] = useState<TPendidikan[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Saat modal dibuka, load data
+  /* ============================
+     LOAD DATA
+  ============================ */
   useEffect(() => {
     if (isOpen) {
       setFormData({
@@ -51,37 +69,25 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
       });
 
       getAllPegawai()
-        .then(setListPegawai)
+        .then((data) =>
+          setListPegawai(
+            data.map((p) => ({
+              nip: p.nip,
+              nama: p.nama,
+            }))
+          )
+        )
         .catch(() => toast.error("Gagal memuat daftar pegawai"));
 
       getAllPendidikan()
-        .then(setListPendidikan)
+        .then((data) => setListPendidikan(data))
         .catch(() => toast.error("Gagal memuat data pendidikan"));
     }
   }, [isOpen]);
 
-  // ================================
-  // VALIDASI DUPLIKAT
-  // ================================
-  useEffect(() => {
-    if (!formData.pegawai || !formData.jenjang) return;
-
-    const duplikat = listPendidikan.some((p) => {
-      return (
-        String(p.Pegawai).trim() === String(formData.pegawai).trim() &&
-        String(p.Jenjang).toUpperCase() === formData.jenjang.toUpperCase()
-      );
-    });
-
-    if (duplikat) {
-      toast.error(
-        `Pegawai ini sudah memiliki jenjang ${formData.jenjang.toUpperCase()}!`
-      );
-      setFormData((prev) => ({ ...prev, jenjang: "" }));
-    }
-  }, [formData.pegawai, formData.jenjang, listPendidikan]);
-
-  // Handle input
+  /* ============================
+     HANDLE INPUT
+  ============================ */
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -89,28 +95,58 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
 
     if (name === "tahun_lulus") {
       const numeric = value.replace(/\D/g, "");
-      if (numeric.length <= 4)
+      if (numeric.length <= 4) {
         setFormData((prev) => ({ ...prev, [name]: numeric }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      }
+      return;
     }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Validasi umum
-  const validateForm = () => {
+  /* ============================
+     DUPLICATE VALIDATION
+  ============================ */
+  const isDuplicate = (): boolean => {
+    return listPendidikan.some((p) => {
+      const nipMatch = String(p.Pegawai).trim() === formData.pegawai.trim();
+      const jenjangMatch =
+        String(p.Jenjang).trim().toLowerCase() ===
+        formData.jenjang.trim().toLowerCase();
+
+      return nipMatch && jenjangMatch;
+    });
+  };
+
+  /* ============================
+     FORM VALIDATION
+  ============================ */
+  const validateForm = (): boolean => {
     const { pegawai, jenjang, jurusan, institusi, tahun_lulus } = formData;
+
     if (!pegawai || !jenjang || !jurusan || !institusi || !tahun_lulus)
       return false;
+
     if (!/^\d{4}$/.test(tahun_lulus)) return false;
+
     return true;
   };
 
-  // Submit
+  /* ============================
+     SUBMIT DATA
+  ============================ */
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!validateForm()) {
       toast.error("Periksa kembali data yang belum lengkap atau salah!");
+      return;
+    }
+
+    if (isDuplicate()) {
+      toast.warning(
+        `Pegawai ini sudah memiliki jenjang ${formData.jenjang.toUpperCase()}!`
+      );
       return;
     }
 
@@ -125,9 +161,10 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
       });
 
       toast.success(result.message || "Data pendidikan berhasil ditambahkan");
+
       await onSuccess();
       handleClose();
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error(
         err instanceof Error
           ? err.message
@@ -149,6 +186,11 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
     onClose();
   };
 
+  const pegawaiOptions: SelectOption[] = listPegawai.map((p) => ({
+    value: p.nip,
+    label: `${p.nip} - ${p.nama}`,
+  }));
+
   return (
     <ModalWrapper
       isOpen={isOpen}
@@ -156,16 +198,17 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
       widthClass="max-w-4xl"
       title="Tambah Data Pendidikan"
     >
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4" autoComplete="off">
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 gap-4"
+        autoComplete="off"
+      >
         <SelectField
           name="pegawai"
           label="Pegawai"
           value={formData.pegawai}
-          options={listPegawai.map((p) => `${p.nip} - ${p.nama}`)}
-          onChange={(e) => {
-            const nip = e.target.value.split(" - ")[0];
-            setFormData((prev) => ({ ...prev, pegawai: nip }));
-          }}
+          options={pegawaiOptions}
+          onChange={handleChange}
         />
 
         <InputField
@@ -216,16 +259,18 @@ export const TambahPendidikan: React.FC<TambahPendidikanProps> = ({
   );
 };
 
+export default TambahPendidikan;
+
 /* ============================
-   SelectField Component
+   SELECT FIELD COMPONENT
 ============================ */
+
 interface SelectFieldProps {
   name: string;
   label: string;
   value: string;
-  options: string[];
+  options: SelectOption[];
   onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
-  error?: string;
 }
 
 const SelectField: React.FC<SelectFieldProps> = ({
@@ -234,13 +279,13 @@ const SelectField: React.FC<SelectFieldProps> = ({
   value,
   options,
   onChange,
-  error,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="space-y-1">
       <label className="block text-sm font-medium text-gray-700">{label}</label>
+
       <div className="relative">
         <select
           name={name}
@@ -256,31 +301,27 @@ const SelectField: React.FC<SelectFieldProps> = ({
           <option value="" disabled>
             -- Pilih {label} --
           </option>
+
           {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>
 
+        {/* Dropdown Icon */}
         <motion.svg
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
           xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
+          className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth="2"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </motion.svg>
       </div>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
     </div>
   );
 };
-
-export default TambahPendidikan;

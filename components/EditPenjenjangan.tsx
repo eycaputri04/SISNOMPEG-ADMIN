@@ -2,16 +2,21 @@
 
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 import ModalWrapper from "./ModalWrapper";
 import InputField from "./Input";
 import Button from "./Button";
+
 import {
   updatePenjenjangan,
   UpdatePenjenjanganPayload,
 } from "@/lib/api/penjenjangan/put-penjenjangan/router";
+
 import { getAllPegawai } from "@/lib/api/petugas/get-petugas/router";
+import {
+  getPenjenjangan,
+  Penjenjangan as TPenjenjangan,
+} from "@/lib/api/penjenjangan/get-penjenjangan/router";
 
 export interface Penjenjangan {
   id: string;
@@ -43,15 +48,21 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
     tahun_pelaksanaan: "",
     penyelenggara: "",
   });
+
   const [pegawaiList, setPegawaiList] = useState<{ nip: string; nama: string }[]>([]);
+  const [listPenjenjangan, setListPenjenjangan] = useState<TPenjenjangan[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Isi form dan daftar pegawai saat modal dibuka
+  // Load data saat modal dibuka
   useEffect(() => {
     if (isOpen) {
       getAllPegawai()
         .then(setPegawaiList)
         .catch(() => toast.error("Gagal memuat daftar pegawai"));
+
+      getPenjenjangan()
+        .then((res) => setListPenjenjangan(res.penjenjangan))
+        .catch(() => toast.error("Gagal memuat data penjenjangan"));
 
       if (initialData) {
         setForm({ ...initialData });
@@ -59,9 +70,21 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
     }
   }, [isOpen, initialData]);
 
+  // Cek duplikat
+  const isDuplicate = () => {
+    return listPenjenjangan.some(
+      (item) =>
+        item.ID_Penjenjangan !== form.id && // abaikan dirinya sendiri
+        item.Pegawai === form.nip &&
+        item.Nama_Penjenjangan.toLowerCase() ===
+          form.nama_penjenjangan.toLowerCase()
+    );
+  };
+
   // Handle perubahan input
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
     if (name === "tahun_pelaksanaan") {
       const numeric = value.replace(/\D/g, "");
       if (numeric.length <= 4) {
@@ -72,7 +95,7 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
     }
   };
 
-  // Handle submit form
+  // Submit
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -80,6 +103,17 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
 
     if (!nip || !nama_penjenjangan || !tahun_pelaksanaan || !penyelenggara) {
       toast.error("Semua field wajib diisi");
+      return;
+    }
+
+    if (!/^\d{4}$/.test(tahun_pelaksanaan)) {
+      toast.error("Tahun pelaksanaan harus 4 digit");
+      return;
+    }
+
+    // Cek duplikat
+    if (isDuplicate()) {
+      toast.warning("Nama penjenjangan untuk pegawai ini sudah terdaftar!");
       return;
     }
 
@@ -97,11 +131,7 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
       await onSuccess();
       onClose();
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        toast.error(err.message || "Gagal memperbarui data penjenjangan");
-      } else {
-        toast.error("Gagal memperbarui data penjenjangan");
-      }
+      toast.error("Gagal memperbarui data penjenjangan");
       console.error(err);
     } finally {
       setLoading(false);
@@ -118,11 +148,9 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
       title="Edit Data Penjenjangan"
     >
       <form onSubmit={handleSubmit} className="space-y-2" autoComplete="off">
-        {/* Pilih Pegawai */}
+        {/* Pegawai */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="nip" className="text-sm font-medium text-gray-700">
-            Pegawai
-          </label>
+          <label className="text-sm font-medium text-gray-700">Pegawai</label>
           <select
             name="nip"
             value={form.nip}
@@ -133,7 +161,7 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
             <option value="">Pilih Pegawai</option>
             {pegawaiList.map((p) => (
               <option key={p.nip} value={p.nip}>
-                {p.nama}
+                {p.nip} - {p.nama}
               </option>
             ))}
           </select>
@@ -146,6 +174,7 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
           onChange={handleChange}
           placeholder="Masukkan nama penjenjangan"
         />
+
         <InputField
           name="tahun_pelaksanaan"
           label="Tahun Pelaksanaan"
@@ -153,6 +182,7 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
           onChange={handleChange}
           placeholder="Contoh: 2024"
         />
+
         <InputField
           name="penyelenggara"
           label="Penyelenggara"
@@ -161,7 +191,7 @@ export const EditPenjenjangan: React.FC<EditPenjenjanganProps> = ({
           placeholder="Masukkan penyelenggara"
         />
 
-        {/* Tombol aksi */}
+        {/* Tombol */}
         <div className="flex justify-end gap-2 pt-4">
           <Button
             label="BATAL"

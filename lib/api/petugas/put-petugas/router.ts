@@ -1,17 +1,17 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
 
 export interface UpdatePegawaiPayload {
-  nama: string;
-  tempat_tanggal_lahir: string;
-  pendidikan_terakhir: string;
-  pangkat_golongan: string;
-  kgb_berikutnya: string;
-  tmt: string;
-  jenis_kelamin: string;
-  agama: string;
-  status_kepegawaian: string;
-  gaji_pokok: number;
-  jumlah_anak: number;
+  Nama: string;
+  Tempat_Tanggal_Lahir: string;
+  Pendidikan_Terakhir: string;
+  Pangkat_Golongan: string;
+  KGB_Berikutnya: string;
+  TMT: string;
+  Jenis_Kelamin: string;
+  Agama: string;
+  Status_Kepegawaian: string;
+  Gaji_Pokok: number;
+  Jumlah_Anak: number;
 }
 
 export async function updatePegawai(nip: string, data: UpdatePegawaiPayload) {
@@ -41,20 +41,7 @@ export async function updatePegawai(nip: string, data: UpdatePegawaiPayload) {
     // Format hasil respons sesuai dengan struktur API
     return {
       message: result.message || 'Data pegawai berhasil diperbarui',
-      data: {
-        nip: result.data?.NIP,
-        nama: result.data?.Nama,
-        tempat_tanggal_lahir: result.data?.Tempat_Tanggal_Lahir,
-        pendidikan_terakhir: result.data?.Pendidikan_Terakhir,
-        pangkat_golongan: result.data?.Pangkat_Golongan,
-        kgb_berikutnya: result.data?.KGB_Berikutnya,
-        tmt: result.data?.TMT,
-        jenis_kelamin: result.data?.Jenis_Kelamin,
-        agama: result.data?.Agama,
-        status_kepegawaian: result.data?.Status_Kepegawaian,
-        gaji_pokok: result.data?.Gaji_Pokok,
-        jumlah_anak: result.data?.Jumlah_Anak,
-      },
+      data: result.data,
     };
   } catch (error) {
     const message =

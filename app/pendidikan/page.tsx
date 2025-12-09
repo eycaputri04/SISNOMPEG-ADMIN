@@ -83,7 +83,6 @@ export default function PendidikanPage() {
     setSelectedPendidikan({
       id_pendidikan: data.ID_Pendidikan,
       pegawai: data.Pegawai,
-      nama_lengkap: data.Nama_Pegawai || "",
       jenjang: data.Jenjang,
       jurusan: data.Jurusan,
       institusi: data.Institusi,

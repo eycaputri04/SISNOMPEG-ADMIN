@@ -9,6 +9,11 @@ import Button from "./Button";
 
 import { tambahPenjenjangan } from "@/lib/api/penjenjangan/post-penjenjangan/router";
 import { getAllPegawai } from "@/lib/api/petugas/get-petugas/router";
+import { getPenjenjangan, Penjenjangan as TPenjenjangan } from "@/lib/api/penjenjangan/get-penjenjangan/router";
+
+/* =======================================
+   TYPE DEFINITIONS
+======================================= */
 
 interface TambahPenjenjanganProps {
   isOpen: boolean;
@@ -30,6 +35,15 @@ export interface Penjenjangan {
   penyelenggara: string;
 }
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+/* =======================================
+   MAIN COMPONENT
+======================================= */
+
 export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
   isOpen,
   onClose,
@@ -41,9 +55,14 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
     tahun_pelaksanaan: "",
     penyelenggara: "",
   });
+
   const [listPegawai, setListPegawai] = useState<Pegawai[]>([]);
+  const [listPenjenjangan, setListPenjenjangan] = useState<TPenjenjangan[]>([]);
   const [loading, setLoading] = useState(false);
 
+  /* =======================================
+     LOAD DATA SAAT MODAL DIBUKA
+  ======================================== */
   useEffect(() => {
     if (isOpen) {
       setFormData({
@@ -52,16 +71,25 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
         tahun_pelaksanaan: "",
         penyelenggara: "",
       });
+
       getAllPegawai()
-        .then(setListPegawai)
+        .then((data) => setListPegawai(data))
         .catch(() => toast.error("Gagal memuat daftar pegawai"));
+
+      getPenjenjangan()
+        .then((res) => setListPenjenjangan(res.penjenjangan))
+        .catch(() => toast.error("Gagal memuat data penjenjangan"));
     }
   }, [isOpen]);
 
+  /* =======================================
+     HANDLE INPUT
+  ======================================== */
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+
     if (name === "tahun_pelaksanaan") {
       const numeric = value.replace(/\D/g, "");
       if (numeric.length <= 4)
@@ -71,6 +99,30 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
     }
   };
 
+  /* =======================================
+     VALIDASI DUPLIKAT DATA
+  ======================================== */
+  const isDuplicate = () => {
+    // gabungkan dengan nama pegawai agar lebih akurat
+    const penjenjanganWithNama = listPenjenjangan.map((p) => {
+      const pegawai = listPegawai.find((pg) => pg.nip === p.Pegawai);
+      return {
+        ...p,
+        nama_pegawai: pegawai?.nama || "",
+      };
+    });
+
+    return penjenjanganWithNama.some(
+      (item) =>
+        item.Pegawai === formData.pegawai &&
+        item.Nama_Penjenjangan.trim().toLowerCase() ===
+          formData.nama_penjenjangan.trim().toLowerCase()
+    );
+  };
+
+  /* =======================================
+     VALIDASI FORM
+  ======================================== */
   const validateForm = () => {
     const { pegawai, nama_penjenjangan, tahun_pelaksanaan, penyelenggara } =
       formData;
@@ -80,10 +132,21 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
     return true;
   };
 
+  /* =======================================
+     SUBMIT FORM
+  ======================================== */
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     if (!validateForm()) {
       toast.warning("Periksa kembali data yang belum lengkap atau salah!");
+      return;
+    }
+
+    if (isDuplicate()) {
+      toast.warning(
+        "Nama penjenjangan sudah ada untuk pegawai ini."
+      );
       return;
     }
 
@@ -112,11 +175,11 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
 
       handleClose();
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        toast.error(err.message || "Gagal menambahkan penjenjangan");
-      } else {
-        toast.error("Gagal menambahkan penjenjangan");
-      }
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat menambah data Penjenjangan"
+      );
     } finally {
       setLoading(false);
     }
@@ -132,6 +195,14 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
     onClose();
   };
 
+  /* =======================================
+     OPTIONS SELECT
+  ======================================== */
+  const pegawaiOptions: SelectOption[] = listPegawai.map((p) => ({
+    value: p.nip,
+    label: `${p.nip} - ${p.nama}`,
+  }));
+
   return (
     <ModalWrapper
       isOpen={isOpen}
@@ -144,16 +215,12 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
         className="grid grid-cols-1 gap-4"
         autoComplete="off"
       >
-        {/* Dropdown Pegawai (pakai SelectField animasi) */}
         <SelectField
           name="pegawai"
           label="Pegawai"
           value={formData.pegawai}
-          options={listPegawai.map((p) => `${p.nip} - ${p.nama}`)}
-          onChange={(e) => {
-            const nip = e.target.value.split(" - ")[0];
-            setFormData((prev) => ({ ...prev, pegawai: nip }));
-          }}
+          options={pegawaiOptions}
+          onChange={handleChange}
         />
 
         <InputField
@@ -163,6 +230,7 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
           onChange={handleChange}
           placeholder="Masukkan nama penjenjangan"
         />
+
         <InputField
           name="tahun_pelaksanaan"
           label="Tahun Pelaksanaan"
@@ -170,6 +238,7 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
           onChange={handleChange}
           placeholder="Contoh: 2024"
         />
+
         <InputField
           name="penyelenggara"
           label="Penyelenggara"
@@ -197,14 +266,14 @@ export const TambahPenjenjangan: React.FC<TambahPenjenjanganProps> = ({
   );
 };
 
-/* ==============================
-   Komponen SelectField 
-============================== */
+/* =======================================
+   SELECT FIELD COMPONENT
+======================================= */
 interface SelectFieldProps {
   name: string;
   label: string;
   value: string;
-  options: string[];
+  options: SelectOption[];
   onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
   error?: string;
 }
@@ -222,6 +291,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   return (
     <div className="space-y-1">
       <label className="block text-sm font-medium text-gray-700">{label}</label>
+
       <div className="relative">
         <select
           name={name}
@@ -238,13 +308,12 @@ const SelectField: React.FC<SelectFieldProps> = ({
             -- Pilih {label} --
           </option>
           {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>
 
-        {/* Icon Dropdown dengan animasi */}
         <motion.svg
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
@@ -260,6 +329,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </motion.svg>
       </div>
+
       {error && <p className="text-red-500 text-sm">{error}</p>}
     </div>
   );
