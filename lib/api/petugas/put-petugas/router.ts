@@ -1,18 +1,20 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
 
-export interface UpdatePegawaiPayload {
-  Nama: string;
-  Tempat_Tanggal_Lahir: string;
-  Pendidikan_Terakhir: string;
-  Pangkat_Golongan: string;
-  KGB_Berikutnya: string;
-  TMT: string;
-  Jenis_Kelamin: string;
-  Agama: string;
-  Status_Kepegawaian: string;
-  Gaji_Pokok: number;
-  Jumlah_Anak: number;
-}
+export type UpdatePegawaiPayload = {
+  nip: string;
+  nama: string;
+  tempat_tanggal_lahir: string;
+  pendidikan_terakhir: string;
+  pangkat_golongan: string;
+  kgb_berikutnya: string;
+  tmt: string;
+  jenis_kelamin: string;
+  agama: string;
+  status_kepegawaian: string;
+  gaji_pokok: number;
+  jumlah_anak: number;
+};
+
 
 export async function updatePegawai(nip: string, data: UpdatePegawaiPayload) {
   const url = API_BASE_URL ? `${API_BASE_URL}/pegawai/${nip}` : null;
