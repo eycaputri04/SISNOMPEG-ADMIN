@@ -89,9 +89,13 @@ export const EditPegawai: React.FC<EditPegawaiProps> = ({
     try {
       const payload: UpdatePegawaiPayload = { ...form };
       await updatePegawai(form.nip, payload);
-      toast.success("Data pegawai berhasil diperbarui");
-      await onSuccess();
+
+      toast.success("Data pegawai berhasil diperbarui", {
+        toastId: "update-pegawai-success",
+      });
+
       setIsEditing(false);
+      await onSuccess();
     } catch (error) {
       toast.error(
         error instanceof Error
